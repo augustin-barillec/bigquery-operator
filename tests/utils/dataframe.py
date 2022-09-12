@@ -1,4 +1,5 @@
 from copy import deepcopy
+from pandas.testing import assert_frame_equal
 
 
 def sort(df):
@@ -17,3 +18,7 @@ def normalize(df):
     res = sort(df)
     res = reset_index(res)
     return res
+
+
+def assert_equal(df1, df2):
+    assert_frame_equal(normalize(df1), normalize(df2), check_dtype=False)

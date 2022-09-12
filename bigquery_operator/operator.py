@@ -108,9 +108,15 @@ class Operator:
         dataset.default_table_expiration_ms = default_table_expiration_ms
         self._client.create_dataset(dataset=dataset, exists_ok=False)
 
+    def list_table_names(self) -> List[str]:
+        """List the names of the tables in the dataset."""
+        tables = list(self._client.list_tables(self._dataset_id))
+        table_names = sorted([t.table_id for t in tables])
+        return table_names
+
     def clean_dataset(self) -> None:
         """Delete all the tables from the dataset."""
-        for table_name in self.list_tables():
+        for table_name in self.list_table_names():
             self.delete_table(table_name)
 
     def build_table_id(
@@ -152,25 +158,10 @@ class Operator:
         num_rows = self.get_table(table_name).num_rows
         return num_rows == 0
 
-    def list_tables(self) -> List[str]:
-        """List the names of the tables in the dataset."""
-        tables = list(self._client.list_tables(self._dataset_id))
-        table_names = sorted([t.table_id for t in tables])
-        return table_names
-
     def delete_table(self, table_name: str) -> None:
         """Delete a table."""
         table_id = self.build_table_id(table_name)
         self._client.delete_table(table_id, not_found_ok=False)
-
-    def delete_table_if_mismatch(
-            self, reference: str, table_name: str) -> None:
-        """Delete the table (whose name is table_name) if
-        :meth:`bq_operator.operator.Operator.tables_same_format`
-        returns False when applied to reference and itself.
-        """
-        if not self.tables_same_format(reference, table_name):
-            self.delete_table(table_name=table_name)
 
     def create_empty_table(
             self,
@@ -195,6 +186,18 @@ class Operator:
         """Return the column names of a table."""
         schema = self.get_table(table_name).schema
         return [f.name for f in schema]
+
+    def get_format_attributes(self, table_name):
+        """Return the following table attributes:
+        schema, time_partitioning, range_partitioning,
+        require_partition_filter, clustering_fields.
+        """
+        n = table_name
+        res = dict()
+        for a in ['schema', 'time_partitioning', 'range_partitioning',
+                  'require_partition_filter', 'clustering_fields']:
+            res[a] = getattr(self.get_table(n), a)
+        return res
 
     def set_time_to_live(self, table_name: str, nb_days: int) -> None:
         """Set the time to live of a table in days."""
