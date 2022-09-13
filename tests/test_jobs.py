@@ -115,7 +115,7 @@ class JobsTest(ut.base_class.BaseClassTest):
         ut.bucket.create_bucket()
         blob_name = 'table_name-*.csv.gz'
         uri = ut.bucket.build_bucket_uri(blob_name)
-        ut.operators.operator.extract_table(
+        ut.operators.operator_quick_setup.extract_table(
             source_table_name='table_name',
             destination_uri=uri)
         computed = ut.load.bucket_to_dataframe(
@@ -139,7 +139,10 @@ class JobsTest(ut.base_class.BaseClassTest):
         ut.load.dataset_to_bucket('table_name', uri)
         ut.operators.operator.load_table(
             source_uri=uri,
-            destination_table_name='table_name_bis')
+            destination_table_name='table_name_bis',
+            schema=[
+                bigquery.SchemaField('x', 'INTEGER'),
+                bigquery.SchemaField('y', 'STRING')])
         computed = ut.load.dataset_to_dataframe('table_name_bis')
         self.assert_dataframe_equal(expected, computed)
         ut.bucket.delete_bucket()
@@ -152,11 +155,11 @@ class JobsTest(ut.base_class.BaseClassTest):
         """
         source_dataset_id = \
             f'{ut.constants.project_id}.{ut.constants.dataset_name}_1'
-        source_dataset = bigquery.Dataset(source_dataset_id)
-        source_dataset.location = ut.constants.dataset_location
         ut.constants.bq_client.delete_dataset(
             source_dataset_id, delete_contents=True, not_found_ok=True)
-        ut.constants.bq_client.create_dataset(source_dataset_id)
+        source_dataset = bigquery.Dataset(source_dataset_id)
+        source_dataset.location = ut.constants.dataset_location
+        ut.constants.bq_client.create_dataset(source_dataset)
         job_config = bigquery.QueryJobConfig()
         job_config.destination = f'{source_dataset_id}.table_name'
         job_config.write_disposition = 'WRITE_TRUNCATE'

@@ -27,4 +27,4 @@ def empty_bucket():
 def delete_bucket():
     if bucket_exists():
         empty_bucket()
-    constants.bucket.delete()
+        constants.bucket.delete()

@@ -48,12 +48,6 @@ class Operator:
             job.result()
 
     @staticmethod
-    def _zero_if_none(x: Optional[int]) -> int:
-        if x is None:
-            return 0
-        return x
-
-    @staticmethod
     def sample_query(query: str, size: int) -> str:
         """Sample randomly a query.
 
@@ -153,11 +147,6 @@ class Operator:
         except NotFound:
             return False
 
-    def table_is_empty(self, table_name: str) -> bool:
-        """Return True if the table is empty."""
-        num_rows = self.get_table(table_name).num_rows
-        return num_rows == 0
-
     def delete_table(self, table_name: str) -> None:
         """Delete a table."""
         table_id = self.build_table_id(table_name)
@@ -181,6 +170,11 @@ class Operator:
         table.require_partition_filter = require_partition_filter
         table.clustering_fields = clustering_fields
         self._client.create_table(table, exists_ok=False)
+
+    def table_is_empty(self, table_name: str) -> bool:
+        """Return True if the table is empty."""
+        num_rows = self.get_table(table_name).num_rows
+        return num_rows == 0
 
     def get_columns(self, table_name: str) -> List[str]:
         """Return the column names of a table."""
@@ -379,9 +373,7 @@ class Operator:
         self._wait_for_jobs(jobs)
         end_timestamp = datetime.now(timezone.utc)
         duration = round((end_timestamp - start_timestamp).total_seconds())
-        total_bytes_billed_list = [
-            self._zero_if_none(j.total_bytes_billed)
-            for j in jobs]
+        total_bytes_billed_list = [j.total_bytes_billed for j in jobs]
         costs = [round(tbb / 10 ** 12 * 5, 5)
                  for tbb in total_bytes_billed_list]
         cost = sum(costs)

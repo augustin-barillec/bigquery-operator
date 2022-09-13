@@ -29,12 +29,6 @@ class TableMethodsWithApiCallsTest(ut.base_class.BaseClassTest):
         ut.table.create_empty_table('table_name')
         self.assertTrue(ut.operators.operator.table_exists('table_name'))
 
-    def test_table_is_empty(self):
-        ut.table.create_empty_table('table_name')
-        self.assertTrue(ut.operators.operator.table_is_empty('table_name'))
-        ut.load.query_to_dataset('select 3', 'table_name')
-        self.assertFalse(ut.operators.operator.table_is_empty('table_name'))
-
     def test_delete_table(self):
         ut.table.create_empty_table('table_name')
         ut.operators.operator.delete_table('table_name')
@@ -78,6 +72,13 @@ class TableMethodsWithApiCallsTest(ut.base_class.BaseClassTest):
         self.assertEqual(None, table.range_partitioning)
         self.assertEqual(None, table.require_partition_filter)
         self.assertEqual(None, table.clustering_fields)
+
+    def test_table_is_empty(self):
+        ut.table.create_empty_table('table_name')
+        self.assertTrue(ut.operators.operator.table_is_empty('table_name'))
+        ut.load.query_to_dataset('select 3', 'table_name')
+        self.assertFalse(
+            ut.operators.operator_quick_setup.table_is_empty('table_name'))
 
     def test_get_columns(self):
         expected = []
@@ -140,7 +141,7 @@ class TableMethodsWithApiCallsTest(ut.base_class.BaseClassTest):
         now = datetime.now(timezone.utc)
         approximate_expected = now + timedelta(days=3)
         ut.table.create_empty_table('table_name')
-        ut.operators.operator.set_time_to_live('table_name', 3)
+        ut.operators.operator_quick_setup.set_time_to_live('table_name', 3)
         computed = ut.table.get_table('table_name').expires
         delta = (computed - approximate_expected).total_seconds()
         self.assertTrue(0 < delta < 1)

@@ -31,7 +31,7 @@ class DatasetMethodsWithApiCallsTest(ut.base_class.BaseClassTest):
 
     def tests_create_dataset(self):
         ut.dataset.delete_dataset()
-        ut.operators.operator.create_dataset()
+        ut.operators.operator_quick_setup.create_dataset()
         self.assertTrue(ut.dataset.dataset_exists())
 
         ut.dataset.delete_dataset()

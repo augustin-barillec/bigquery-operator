@@ -17,8 +17,8 @@ sys.path.insert(0, os.path.abspath('../..'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'bq-operator'
-copyright = '2021, Augustin Barillec'
+project = 'bigquery-operator'
+copyright = '2022, Augustin Barillec'
 author = 'Augustin Barillec'
 
 # The full version, including alpha/beta/rc tags

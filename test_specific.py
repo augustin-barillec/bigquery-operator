@@ -1,6 +1,6 @@
 import unittest
-from tests.test_table_operations import TableOperations
+from tests.test_table_methods import TableMethodsWithoutApiCallsTest
 
 suite = unittest.TestSuite()
-suite.addTest(TableOperations('test_get_schema'))
+suite.addTest(TableMethodsWithoutApiCallsTest('test_build_table_id'))
 unittest.TextTestRunner(verbosity=2).run(suite)
