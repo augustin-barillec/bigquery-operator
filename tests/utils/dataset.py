@@ -29,7 +29,7 @@ def create_dataset():
         exists_ok=False)
 
 
-def list_table_names():
+def list_tables():
     tables = list(constants.bq_client.list_tables(constants.dataset_id))
     table_names = sorted([t.table_id for t in tables])
     return table_names

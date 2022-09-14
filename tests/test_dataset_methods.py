@@ -42,16 +42,16 @@ class DatasetMethodsWithApiCallsTest(ut.base_class.BaseClassTest):
         self.assertEqual('EU', dataset.location)
         self.assertEqual(11*24*3600*1000, dataset.default_table_expiration_ms)
 
-    def test_list_table_names(self):
-        self.assertEqual([], ut.operators.operator.list_table_names())
+    def test_list_tables(self):
+        self.assertEqual([], ut.operators.operator.list_tables())
         for n in ['table_name_1', 'table_name_2']:
             ut.table.create_empty_table(n)
         self.assertEqual(
             ['table_name_1', 'table_name_2'],
-            ut.operators.operator.list_table_names())
+            ut.operators.operator.list_tables())
 
     def test_clean_dataset(self):
         for n in ['table_name_1', 'table_name_2']:
             ut.table.create_empty_table(n)
         ut.operators.operator.clean_dataset()
-        self.assertEqual([], ut.dataset.list_table_names())
+        self.assertEqual([], ut.dataset.list_tables())

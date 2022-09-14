@@ -20,7 +20,7 @@ class JobsTest(ut.base_class.BaseClassTest):
         self.assertTrue(isinstance(monitoring['duration'], int))
         self.assertTrue(monitoring['duration'] > 0)
         self.assertEqual(
-            ['table_name_1', 'table_name_2'], ut.dataset.list_table_names())
+            ['table_name_1', 'table_name_2'], ut.dataset.list_tables())
         computed_1 = ut.load.dataset_to_dataframe('table_name_1')
         computed_2 = ut.load.dataset_to_dataframe('table_name_2')
         self.assert_dataframe_equal(expected_1, computed_1)
@@ -100,7 +100,7 @@ class JobsTest(ut.base_class.BaseClassTest):
         self.assertEqual(0.0, monitoring['cost'])
         self.assertTrue(isinstance(monitoring['duration'], int))
         self.assertTrue(monitoring['duration'] > 0)
-        self.assertEqual(['table_name'], ut.dataset.list_table_names())
+        self.assertEqual(['table_name'], ut.dataset.list_tables())
         computed = ut.load.dataset_to_dataframe('table_name')
         self.assert_dataframe_equal(expected, computed)
 

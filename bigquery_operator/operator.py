@@ -102,7 +102,7 @@ class Operator:
         dataset.default_table_expiration_ms = default_table_expiration_ms
         self._client.create_dataset(dataset=dataset, exists_ok=False)
 
-    def list_table_names(self) -> List[str]:
+    def list_tables(self) -> List[str]:
         """List the names of the tables in the dataset."""
         tables = list(self._client.list_tables(self._dataset_id))
         table_names = sorted([t.table_id for t in tables])
@@ -110,7 +110,7 @@ class Operator:
 
     def clean_dataset(self) -> None:
         """Delete all the tables from the dataset."""
-        for table_name in self.list_table_names():
+        for table_name in self.list_tables():
             self.delete_table(table_name)
 
     def build_table_id(
