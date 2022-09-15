@@ -1,6 +1,5 @@
 -r requirements.txt
-coverage==5.*
 db-dtypes==1.*
 google-cloud-storage==2.*
 pandas==1.*
-sphinx==4.*
+sphinx==5.*
