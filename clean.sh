@@ -14,7 +14,7 @@ function clean_coverage(){
 }
 
 function clean_packaging(){
-  rm -rf build dist google_pandas_load.egg-info
+  rm -rf build dist bigquery_operator.egg-info
 }
 
 function clean(){
