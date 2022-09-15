@@ -90,6 +90,8 @@ Execute various operations on the dataset 'tmp_dataset'.
     >>> o.extract_table('table_1', uri, print_header=True)
     # Conversely, one can load data from tmp_bucket into tmp_dataset.
     >>> o.load_table(uri, 'table_10')
+    # The methods run_queries, copy_tables, extract_tables and
+    # load_tables are run in parallel. For instance:
     >>> queries = [f'select {i}' for i in range(4)]
     >>> destination_table_names = [f'table_4{i}' for i in range(4)]
     >>> o.run_queries(queries, destination_table_names)
