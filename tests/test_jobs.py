@@ -10,7 +10,7 @@ class JobsTest(ut.base_class.BaseClassTest):
             data={'x': [3], 'y': ['a']})
         expected_2 = pandas.DataFrame(data={'x': [1]})
         query_1 = "select 3 as x, 'a' as y"
-        query_2 = "select 1 as x"
+        query_2 = 'select 1 as x'
         monitoring = ut.operators.operator.run_queries(
             queries=[query_1, query_2],
             destination_table_names=['table_name_1', 'table_name_2'])
@@ -31,7 +31,7 @@ class JobsTest(ut.base_class.BaseClassTest):
             data={'x': [3], 'y': ['a']})
         expected_2 = pandas.DataFrame(data={'x': [1]})
         query_1 = "select 3 as x, 'a' as y"
-        query_2 = "select 1 as x"
+        query_2 = 'select 1 as x'
         ut.load.query_to_dataset(query_1, 'table_name_1')
         ut.load.query_to_dataset(query_2, 'table_name_2')
         ut.bucket.delete_bucket()
@@ -75,7 +75,7 @@ class JobsTest(ut.base_class.BaseClassTest):
             data={'x': [3], 'y': ['a']})
         expected_2 = pandas.DataFrame(data={'x': [1]})
         query_1 = "select 3 as x, 'a' as y"
-        query_2 = "select 1 as x"
+        query_2 = 'select 1 as x'
         ut.load.query_to_dataset(query_1, 'table_name_1')
         ut.load.query_to_dataset(query_2, 'table_name_2')
         ut.operators.operator.copy_tables(

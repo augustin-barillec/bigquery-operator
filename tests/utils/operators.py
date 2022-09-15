@@ -1,5 +1,5 @@
-from tests.utils import constants
 from bigquery_operator import Operator, OperatorQuickSetup
+from tests.utils import constants
 
 operator = Operator(
     client=constants.bq_client,

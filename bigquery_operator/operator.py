@@ -1,7 +1,6 @@
 from typing import List, Optional
 from datetime import datetime, timezone, timedelta
-from google.cloud import bigquery
-from google.cloud.exceptions import NotFound
+from google.cloud import bigquery, exceptions
 
 
 class Operator:
@@ -71,7 +70,7 @@ class Operator:
         try:
             self.get_dataset()
             return True
-        except NotFound:
+        except exceptions.NotFound:
             return False
 
     def delete_dataset(self) -> None:
@@ -144,7 +143,7 @@ class Operator:
         try:
             self.get_table(table_name)
             return True
-        except NotFound:
+        except exceptions.NotFound:
             return False
 
     def delete_table(self, table_name: str) -> None:
@@ -186,11 +185,10 @@ class Operator:
         schema, time_partitioning, range_partitioning,
         require_partition_filter, clustering_fields.
         """
-        n = table_name
         res = dict()
         for a in ['schema', 'time_partitioning', 'range_partitioning',
                   'require_partition_filter', 'clustering_fields']:
-            res[a] = getattr(self.get_table(n), a)
+            res[a] = getattr(self.get_table(table_name), a)
         return res
 
     def set_time_to_live(self, table_name: str, nb_days: int) -> None:
@@ -388,7 +386,7 @@ class Operator:
             print_header: Optional[bool] = True) -> None:
         """Extract tables from BigQuery to Storage. Each source table is
         extracted as one or more compressed gzip csv files. Each destination
-        uri must end with 'gz.csv'.
+        uri must end with '.csv.gz'.
         """
         self._wait_for_jobs(self._extract_jobs(
             source_table_names,
@@ -447,7 +445,7 @@ class Operator:
             destination_uri: str,
             field_delimiter: Optional[str] = '|',
             print_header: Optional[bool] = True) -> None:
-        """Extract a table. Data is extracted as a gziz compressed csv.
+        """Extract a table. Data is extracted as a gzip compressed csv.
         ``destination_uri`` must end with '.csv.gz'
         """
         self.extract_tables(
