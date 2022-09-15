@@ -83,7 +83,7 @@ class Operator:
     def create_dataset(
             self,
             location: Optional[str] = None,
-            default_time_to_live: Optional[str] = None) -> None:
+            default_time_to_live: Optional[int] = None) -> None:
         """Create the dataset.
 
         Args:
