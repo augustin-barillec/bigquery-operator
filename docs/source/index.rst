@@ -51,7 +51,7 @@ For further information about how to authenticate to Google Cloud Platform with 
             dataset_name,
             credentials=None)
 
-Execute various operations on the dataset 'tmp_dataset'.
+Execute various operations on the dataset tmp_dataset.
 
 .. code-block:: python
 
