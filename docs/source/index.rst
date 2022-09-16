@@ -33,7 +33,7 @@ Installation
 Quickstart
 ----------
 
-Set up a operator.
+Set up an operator.
 
 In the following code, the credentials are inferred from the environment.
 For further information about how to authenticate to Google Cloud Platform with the
