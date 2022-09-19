@@ -1,8 +1,24 @@
 import unittest
+from bigquery_operator import Operator
 from tests import utils as ut
 
 
 class ErrorsTest(unittest.TestCase):
+
+    def test_raise_error_if_dataset_id_not_contain_exactly_one_dot(self):
+        msg = 'dataset_id must contain exactly one dot'
+
+        with self.assertRaises(ValueError) as cm:
+            Operator(
+                client=ut.constants.bq_client,
+                dataset_id='a')
+        self.assertEqual(msg, str(cm.exception))
+
+        with self.assertRaises(ValueError) as cm:
+            Operator(
+                client=ut.constants.bq_client,
+                dataset_id='a.b.c')
+        self.assertEqual(msg, str(cm.exception))
 
     def test_raise_error_if_destination_uri_not_end_with_csv_gz(self):
         with self.assertRaises(ValueError) as cm:

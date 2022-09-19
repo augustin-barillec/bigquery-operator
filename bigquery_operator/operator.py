@@ -19,7 +19,15 @@ class Operator:
             dataset_id: str) -> None:
         self._client = client
         self._dataset_id = dataset_id
-        self._dataset_name = self._dataset_id.split('.')[-1]
+        self._check_dataset_id_format()
+        dataset_id_splitted = self._dataset_id.split('.')
+        self._dataset_project_id = dataset_id_splitted[0]
+        self._dataset_name = dataset_id_splitted[1]
+
+    def _check_dataset_id_format(self):
+        if self._dataset_id.count('.') != 1:
+            msg = 'dataset_id must contain exactly one dot'
+            raise ValueError(msg)
 
     @property
     def client(self) -> bigquery.Client:
@@ -27,14 +35,19 @@ class Operator:
         return self._client
 
     @property
-    def project_id(self) -> str:
-        """str: the id of the project which the client acts on behalf of."""
+    def client_project_id(self) -> str:
+        """str: The id of the project which the client acts on behalf of."""
         return self._client.project
 
     @property
     def dataset_id(self) -> str:
         """str: The dataset id in the format 'project_id.dataset_name'."""
         return self._dataset_id
+
+    @property
+    def dataset_project_id(self) -> str:
+        """str: The id of dataset's project."""
+        return self._dataset_project_id
 
     @property
     def dataset_name(self) -> str:

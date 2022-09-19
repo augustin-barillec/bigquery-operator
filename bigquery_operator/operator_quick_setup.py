@@ -42,3 +42,13 @@ class OperatorQuickSetup(Operator):
             credentials=credentials)
         dataset_id = f'{self._project_id}.{dataset_name}'
         super().__init__(client, dataset_id)
+
+    @property
+    def project_id(self) -> str:
+        """str: The project_id in the argument.
+
+        By construction, it is the common project_id of the client and
+        the dataset. For an instance of the base class, the project_id of the
+        client and the project_id of the dataset may be different.
+        """
+        return self._project_id
