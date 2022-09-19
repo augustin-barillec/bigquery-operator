@@ -46,7 +46,7 @@ class Operator:
 
     @property
     def dataset_project_id(self) -> str:
-        """str: The id of dataset's project."""
+        """str: The project id of the dataset."""
         return self._dataset_project_id
 
     @property

@@ -25,8 +25,8 @@ class OperatorQuickSetup(Operator):
         dataset_id = project_id + '.' + dataset_name
 
     Args:
-        project_id (str, optional): The project id.
-        dataset_name (str, optional): The dataset name.
+        project_id (str): The project id.
+        dataset_name (str): The dataset name.
         credentials (google.auth.credentials.Credentials): Credentials used to
             build the client. If not passed, falls back to the default inferred
             from the environment.
