@@ -1,10 +1,10 @@
 from typing import Optional
 from google.auth import credentials as cred
 from google.cloud import bigquery
-from bigquery_operator.operator import Operator
+from bigquery_operator import operator
 
 
-class OperatorQuickSetup(Operator):
+class OperatorQuickSetup(operator.Operator):
     """The purpose of this class is to quickly set up an Operator.
 
     An instance of OperatorQuickSetup is simply an instance of the base class

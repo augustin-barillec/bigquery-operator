@@ -1,12 +1,12 @@
 import unittest
-from bigquery_operator import Operator
+import bigquery_operator
 from tests import utils as ut
 
 
 class GettersTest(unittest.TestCase):
 
     def test_call_operator_getters(self):
-        o = Operator(
+        o = bigquery_operator.Operator(
             ut.constants.bq_client,
             'project_id_1.dataset_name_1')
         self.assertEqual(ut.constants.bq_client, o.client)

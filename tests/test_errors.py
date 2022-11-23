@@ -1,5 +1,5 @@
 import unittest
-from bigquery_operator import Operator
+import bigquery_operator
 from tests import utils as ut
 
 
@@ -9,13 +9,13 @@ class ErrorsTest(unittest.TestCase):
         msg = 'dataset_id must contain exactly one dot'
 
         with self.assertRaises(ValueError) as cm:
-            Operator(
+            bigquery_operator.Operator(
                 client=ut.constants.bq_client,
                 dataset_id='a')
         self.assertEqual(msg, str(cm.exception))
 
         with self.assertRaises(ValueError) as cm:
-            Operator(
+            bigquery_operator.Operator(
                 client=ut.constants.bq_client,
                 dataset_id='a.b.c')
         self.assertEqual(msg, str(cm.exception))

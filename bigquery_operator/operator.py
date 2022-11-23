@@ -185,8 +185,7 @@ class Operator:
 
     def table_is_empty(self, table_name: str) -> bool:
         """Return True if the table is empty."""
-        num_rows = self.get_table(table_name).num_rows
-        return num_rows == 0
+        return self.get_table(table_name).num_rows == 0
 
     def get_columns(self, table_name: str) -> List[str]:
         """Return the column names of a table."""
@@ -237,17 +236,16 @@ class Operator:
             self,
             source_table_name: str,
             destination_uri: str,
+            compression: str,
             field_delimiter: str,
             print_header: bool
     ) -> bigquery.ExtractJob:
-        if not destination_uri.endswith('.csv.gz'):
-            raise ValueError("destination_uri must end with '.csv.gz'")
         source = self.build_table_id(source_table_name)
         job_config = bigquery.ExtractJobConfig()
+        job_config.destination_format = 'CSV'
+        job_config.compression = compression
         job_config.field_delimiter = field_delimiter
         job_config.print_header = print_header
-        job_config.destination_format = 'CSV'
-        job_config.compression = 'GZIP'
         job = self._client.extract_table(
             source=source,
             destination_uris=destination_uri,
@@ -317,6 +315,7 @@ class Operator:
             self,
             source_table_names: List[str],
             destination_uris: List[str],
+            compression: str,
             field_delimiter: str,
             print_header: bool
     ) -> List[bigquery.ExtractJob]:
@@ -327,7 +326,8 @@ class Operator:
         if len_source_table_names != len_destination_uris:
             raise ValueError('source_table_names and destination_uris '
                              'must have the same length')
-        return [self._extract_job(s, d, field_delimiter, print_header)
+        return [self._extract_job(
+            s, d, compression, field_delimiter, print_header)
                 for s, d in zip(source_table_names, destination_uris)]
 
     def _load_jobs(
@@ -395,6 +395,7 @@ class Operator:
             self,
             source_table_names: List[str],
             destination_uris: List[str],
+            compression: Optional[str] = None,
             field_delimiter: Optional[str] = '|',
             print_header: Optional[bool] = True) -> None:
         """Extract tables from BigQuery to Storage. Each source table is
@@ -404,6 +405,7 @@ class Operator:
         self._wait_for_jobs(self._extract_jobs(
             source_table_names,
             destination_uris,
+            compression,
             field_delimiter,
             print_header))
 
@@ -456,6 +458,7 @@ class Operator:
             self,
             source_table_name: str,
             destination_uri: str,
+            compression: Optional[str] = None,
             field_delimiter: Optional[str] = '|',
             print_header: Optional[bool] = True) -> None:
         """Extract a table. Data is extracted as a gzip compressed csv.
@@ -463,7 +466,7 @@ class Operator:
         """
         self.extract_tables(
             [source_table_name], [destination_uri],
-            field_delimiter, print_header)
+            compression, field_delimiter, print_header)
 
     def load_table(
             self,
