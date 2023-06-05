@@ -34,6 +34,56 @@ class TableMethodsWithApiCallsTest(ut.base_class.BaseClassTest):
         ut.operators.operator.delete_table('table_name')
         self.assertFalse(ut.table.table_exists('table_name'))
 
+    def test_delete_table_if_exists(self):
+        ut.table.create_empty_table('table_name')
+        ut.operators.operator.delete_table_if_exists('table_name')
+        self.assertFalse(ut.table.table_exists('table_name'))
+        ut.operators.operator.delete_table_if_exists('table_name')
+
+    def test_delete_table_if_mismatches(self):
+        schema = [
+            bigquery.SchemaField('a', 'STRING'),
+            bigquery.SchemaField('b', 'TIMESTAMP'),
+            bigquery.SchemaField('c', 'INTEGER')]
+        time_partitioning = None
+        range_partitioning = bigquery.RangePartitioning(
+            field='c',
+            range_=bigquery.PartitionRange(
+                start=0, end=100, interval=10))
+        require_partition_filter = True
+        clustering_fields = ['a', 'b']
+
+        ut.operators.operator.create_empty_table(
+            table_name='table_name_1',
+            schema=schema,
+            time_partitioning=time_partitioning,
+            range_partitioning=range_partitioning,
+            require_partition_filter=require_partition_filter,
+            clustering_fields=clustering_fields)
+        ut.operators.operator.create_empty_table(
+            table_name='table_name_2',
+            schema=schema,
+            time_partitioning=time_partitioning,
+            range_partitioning=range_partitioning,
+            require_partition_filter=require_partition_filter,
+            clustering_fields=clustering_fields)
+        clustering_fields = ['a']
+        ut.operators.operator.create_empty_table(
+            table_name='table_name_3',
+            schema=schema,
+            time_partitioning=time_partitioning,
+            range_partitioning=range_partitioning,
+            require_partition_filter=require_partition_filter,
+            clustering_fields=clustering_fields)
+
+        ut.operators.operator_quick_setup.delete_table_if_mismatches(
+            'table_name_1', 'table_name_2')
+        ut.operators.operator_quick_setup.delete_table_if_mismatches(
+            'table_name_1', 'table_name_3')
+
+        self.assertTrue(ut.table.table_exists('table_name_2'))
+        self.assertFalse(ut.table.table_exists('table_name_3'))
+
     def test_create_empty_table(self):
         schema = [
             bigquery.SchemaField('a', 'STRING'),

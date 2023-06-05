@@ -29,12 +29,20 @@ class DatasetMethodsWithApiCallsTest(ut.base_class.BaseClassTest):
         ut.operators.operator.delete_dataset()
         self.assertFalse(ut.dataset.dataset_exists())
 
-    def tests_create_dataset(self):
+    def test_create_dataset(self):
         ut.dataset.delete_dataset()
         ut.operators.operator.create_dataset(location='EU')
         self.assertTrue(ut.dataset.dataset_exists())
         dataset = ut.dataset.get_dataset()
         self.assertEqual('EU', dataset.location)
+
+    def test_create_dataset_if_not_exist(self):
+        ut.dataset.delete_dataset()
+        ut.operators.operator.create_dataset_if_not_exist(location='EU')
+        self.assertTrue(ut.dataset.dataset_exists())
+        dataset = ut.dataset.get_dataset()
+        self.assertEqual('EU', dataset.location)
+        ut.operators.operator.create_dataset_if_not_exist(location='EU')
 
     def test_list_tables(self):
         self.assertEqual([], ut.operators.operator.list_tables())
