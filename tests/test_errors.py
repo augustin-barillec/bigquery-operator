@@ -20,14 +20,6 @@ class ErrorsTest(unittest.TestCase):
                 dataset_id='a.b.c')
         self.assertEqual(msg, str(cm.exception))
 
-    def test_raise_error_if_destination_uri_not_end_with_csv_gz(self):
-        with self.assertRaises(ValueError) as cm:
-            ut.operators.operator_quick_setup.extract_table(
-                source_table_name='table_name',
-                destination_uri='table_name.csv.ggz')
-        msg = "destination_uri must end with '.csv.gz'"
-        self.assertEqual(msg, str(cm.exception))
-
     def test_raise_error_if_queries_empty(self):
         with self.assertRaises(ValueError) as cm:
             ut.operators.operator_quick_setup.run_queries(

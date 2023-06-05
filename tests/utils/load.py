@@ -30,10 +30,11 @@ def dataset_to_dataframe(table_name):
     return constants.bq_client.list_rows(table_id).to_dataframe()
 
 
-def bucket_to_dataframe(blob_name):
+def bucket_to_dataframe(blob_name, decompress):
     b = storage.Blob(
         name=blob_name, bucket=constants.bucket).download_as_bytes()
-    b = zlib.decompress(b, wbits=zlib.MAX_WBITS | 16)
+    if decompress:
+        b = zlib.decompress(b, wbits=zlib.MAX_WBITS | 16)
     csv = b.decode('utf-8')
     return pandas.read_csv(StringIO(csv), sep=constants.field_delimiter)
 

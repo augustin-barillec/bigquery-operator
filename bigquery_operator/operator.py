@@ -1,6 +1,10 @@
+import logging
+import time
 from typing import List, Optional
 from datetime import datetime, timezone, timedelta
 from google.cloud import bigquery, exceptions
+from google.api_core.exceptions import PreconditionFailed
+logger = logging.getLogger(__name__)
 
 
 class Operator:
@@ -12,7 +16,6 @@ class Operator:
         dataset_id (str): The dataset id in the format
             'project_id.dataset_name'.
     """
-
     def __init__(
             self,
             client: bigquery.Client,
@@ -24,7 +27,7 @@ class Operator:
         self._dataset_project_id = dataset_id_splitted[0]
         self._dataset_name = dataset_id_splitted[1]
 
-    def _check_dataset_id_format(self):
+    def _check_dataset_id_format(self) -> None:
         if self._dataset_id.count('.') != 1:
             msg = 'dataset_id must contain exactly one dot'
             raise ValueError(msg)
@@ -93,26 +96,20 @@ class Operator:
             delete_contents=False,
             not_found_ok=False)
 
-    def create_dataset(
-            self,
-            location: Optional[str] = None,
-            default_time_to_live: Optional[int] = None) -> None:
-        """Create the dataset.
-
-        Args:
-            location (str, optional): Location in which the dataset is hosted.
-            default_time_to_live (int, optional): The default time to live
-                in days for the tables created in the dataset.
-        """
+    def create_dataset(self, location: str) -> None:
+        """Create the dataset."""
         dataset = self.instantiate_dataset()
         dataset.location = location
-        if default_time_to_live is not None:
-            default_table_expiration_ms = \
-                default_time_to_live * 24 * 60 * 60 * 1000
-        else:
-            default_table_expiration_ms = None
-        dataset.default_table_expiration_ms = default_table_expiration_ms
         self._client.create_dataset(dataset=dataset, exists_ok=False)
+
+    def create_dataset_if_not_exist(self, location: str) -> None:
+        """Create the dataset if it does not exist. Otherwise, check that
+        the actual location of the existing dataset equals the location
+        specified in the argument."""
+        if self.dataset_exists():
+            assert location == self.get_dataset().location
+        else:
+            self.create_dataset(location)
 
     def list_tables(self) -> List[str]:
         """List the names of the tables in the dataset."""
@@ -125,21 +122,20 @@ class Operator:
         for table_name in self.list_tables():
             self.delete_table(table_name)
 
-    def build_table_id(
-            self, table_name: str, dataset_id: Optional[str] = None):
+    @staticmethod
+    def _build_table_id(dataset_id: str, table_name: str) -> str:
+        return f'{dataset_id}.{table_name}'
+
+    def build_table_id(self, table_name: str) -> str:
         """Return a table id.
 
         Args:
             table_name (str): A table name.
-            dataset_id (str, optional): A dataset id in the format
-                'project_id.dataset_name'. If not passed, falls back to
-                self.dataset_id.
         Returns:
-            str: A table id in the format 'project_id.dataset_name.table_name'.
+            str: A table id in the format 'dataset_id.table_name' where
+                dataset_id is the argument passed to the __init__ method.
         """
-        if dataset_id is None:
-            dataset_id = self._dataset_id
-        return f'{dataset_id}.{table_name}'
+        return self._build_table_id(self._dataset_id, table_name)
 
     def instantiate_table(self, table_name: str) -> bigquery.Table:
         """Instantiate a table. No api call is made."""
@@ -164,9 +160,27 @@ class Operator:
         table_id = self.build_table_id(table_name)
         self._client.delete_table(table_id, not_found_ok=False)
 
+    def delete_table_if_exists(self, table_name: str) -> None:
+        """Delete a table if it exists."""
+        if self.table_exists(table_name):
+            self.delete_table(table_name)
+
+    def delete_table_if_mismatches(
+            self, reference: str, table_name: str) -> None:
+        """Delete a table if the format attributes of the table and the
+        reference table are not the same. The format attributes are given
+        by the method get_format_attributes."""
+        if self.table_exists(reference) and self.table_exists(table_name):
+            reference_format = self.get_format_attributes(reference)
+            table_format = self.get_format_attributes(table_name)
+            if reference_format != table_format:
+                self.delete_table(table_name)
+
     def create_empty_table(
             self,
             table_name: str,
+            pre_delete_if_exists: Optional[bool] = False,
+            time_to_live: Optional[int] = None,
             schema: Optional[List[bigquery.SchemaField]] = None,
             time_partitioning: Optional[bigquery.TimePartitioning] = None,
             range_partitioning: Optional[bigquery.RangePartitioning] = None,
@@ -175,6 +189,8 @@ class Operator:
         """Create a empty table. Only specify at
         most one of time_partitioning or range_partitioning.
         """
+        if pre_delete_if_exists:
+            self.delete_table_if_exists(table_name)
         table = self.instantiate_table(table_name)
         table.schema = schema
         table.time_partitioning = time_partitioning
@@ -182,6 +198,8 @@ class Operator:
         table.require_partition_filter = require_partition_filter
         table.clustering_fields = clustering_fields
         self._client.create_table(table, exists_ok=False)
+        if time_to_live is not None:
+            self.set_time_to_live(table_name, time_to_live)
 
     def table_is_empty(self, table_name: str) -> bool:
         """Return True if the table is empty."""
@@ -191,6 +209,17 @@ class Operator:
         """Return the column names of a table."""
         schema = self.get_table(table_name).schema
         return [f.name for f in schema]
+
+    def get_table_rows(self, table_name: str) -> List[bigquery.Row]:
+        """Return the rows of a table."""
+        table_id = self.build_table_id(table_name)
+        res = list(self._client.list_rows(table_id))
+        return res
+
+    def get_query_rows(self, query: str) -> List[bigquery.Row]:
+        """Return the rows of a query."""
+        res = list(self._client.query(query).result())
+        return res
 
     def get_format_attributes(self, table_name):
         """Return the following table attributes:
@@ -204,21 +233,51 @@ class Operator:
         return res
 
     def set_time_to_live(self, table_name: str, nb_days: int) -> None:
-        """Set the time to live of a table in days."""
-        expiration_time = (datetime.now(timezone.utc) +
-                           timedelta(days=nb_days))
-        table = self.get_table(table_name)
-        table.expires = expiration_time
-        self._client.update_table(table, ['expires'])
+        """Set the time to live of a table in days. More precisely the
+        expires attribute of the table is set to UTC midnight between
+        (today + nb_days) and (today + nb_days + 1), if it has not already
+        this value.
+
+        We have noticed that some
+        unexpected google.api_core.exceptions.PreconditionFailed can
+        happen. We catch this exception and try to update the table at most
+        4 times:
+        - first try immediately
+        - second try 10 seconds after the first try
+        - third try 30 seconds after the second try
+        - fourth try 60 seconds after the third try
+        """
+        expiration_time = (
+                datetime.now(timezone.utc) +
+                timedelta(days=nb_days + 1)).date()
+        expiration_time = datetime.combine(
+            expiration_time, datetime.min.time(), tzinfo=timezone.utc)
+        for duration in [10, 30, 60]:
+            try:
+                table = self.get_table(table_name)
+                if expiration_time == table.expires:
+                    return
+                table.expires = expiration_time
+                self._client.update_table(table, ['expires'])
+            except PreconditionFailed as e:
+                logger.warning(e, stack_info=True)
+                logger.warning(f'sleeping {duration} seconds before next try')
+                time.sleep(duration)
 
     def create_view(
             self,
             query: str,
-            destination_table_name: str) -> None:
+            destination_table_name: str,
+            pre_delete_if_exists: Optional[bool] = False,
+            time_to_live: Optional[int] = None) -> None:
         """Create a view."""
+        if pre_delete_if_exists:
+            self.delete_table_if_exists(destination_table_name)
         view = self.instantiate_table(destination_table_name)
         view.view_query = query
         self._client.create_table(view, exists_ok=False)
+        if time_to_live is not None:
+            self.set_time_to_live(destination_table_name, time_to_live)
 
     def _query_job(
             self,
@@ -236,7 +295,7 @@ class Operator:
             self,
             source_table_name: str,
             destination_uri: str,
-            compression: str,
+            compression: bigquery.Compression,
             field_delimiter: str,
             print_header: bool
     ) -> bigquery.ExtractJob:
@@ -283,8 +342,8 @@ class Operator:
             source_dataset_id: str,
             write_disposition: bigquery.WriteDisposition
     ) -> bigquery.CopyJob:
-        source_table_id = self.build_table_id(
-            source_table_name, dataset_id=source_dataset_id)
+        source_table_id = self._build_table_id(
+            source_dataset_id, source_table_name)
         destination_table_id = self.build_table_id(
             destination_table_name)
         job_config = bigquery.CopyJobConfig()
@@ -315,7 +374,7 @@ class Operator:
             self,
             source_table_names: List[str],
             destination_uris: List[str],
-            compression: str,
+            compression: bigquery.Compression,
             field_delimiter: str,
             print_header: bool
     ) -> List[bigquery.ExtractJob]:
@@ -372,12 +431,16 @@ class Operator:
             self,
             queries: List[str],
             destination_table_names: List[str],
+            sample_size: Optional[int] = None,
+            time_to_live: Optional[int] = None,
             write_disposition: Optional[bigquery.WriteDisposition] =
             bigquery.WriteDisposition.WRITE_TRUNCATE) -> dict:
         """Run queries. Return monitoring as a dict in the format
         {'duration': d, 'cost': c} where d is the execution duration in
         seconds and c the execution cost in dollars.
         """
+        if sample_size is not None:
+            queries = [self.sample_query(q, sample_size) for q in queries]
         start_timestamp = datetime.now(timezone.utc)
         jobs = self._query_jobs(
             queries, destination_table_names, write_disposition)
@@ -385,22 +448,24 @@ class Operator:
         end_timestamp = datetime.now(timezone.utc)
         duration = round((end_timestamp - start_timestamp).total_seconds())
         total_bytes_billed_list = [j.total_bytes_billed for j in jobs]
-        costs = [round(tbb / 10 ** 12 * 5, 5)
+        costs = [round(tbb / 10 ** 12 * 6, 5)
                  for tbb in total_bytes_billed_list]
         cost = sum(costs)
         monitoring = {'duration': duration, 'cost': cost}
+        if time_to_live is not None:
+            for n in destination_table_names:
+                self.set_time_to_live(n, time_to_live)
         return monitoring
 
     def extract_tables(
             self,
             source_table_names: List[str],
             destination_uris: List[str],
-            compression: Optional[str] = None,
+            compression: Optional[bigquery.Compression] = None,
             field_delimiter: Optional[str] = '|',
             print_header: Optional[bool] = True) -> None:
         """Extract tables from BigQuery to Storage. Each source table is
-        extracted as one or more compressed gzip csv files. Each destination
-        uri must end with '.csv.gz'.
+        extracted as one or more compressed gzip csv files.
         """
         self._wait_for_jobs(self._extract_jobs(
             source_table_names,
@@ -413,6 +478,7 @@ class Operator:
             self,
             source_uris: List[str],
             destination_table_names: List[str],
+            time_to_live: Optional[int] = None,
             schemas: Optional[List[List[bigquery.SchemaField]]] = None,
             field_delimiter: Optional[str] = '|',
             write_disposition: Optional[bigquery.WriteDisposition] =
@@ -423,11 +489,15 @@ class Operator:
         self._wait_for_jobs(self._load_jobs(
             source_uris, destination_table_names, schemas,
             field_delimiter, write_disposition))
+        if time_to_live is not None:
+            for n in destination_table_names:
+                self.set_time_to_live(n, time_to_live)
 
     def copy_tables(
             self,
             source_table_names: List[str],
             destination_table_names: List[str],
+            time_to_live: Optional[int] = None,
             source_dataset_id: Optional[str] = None,
             write_disposition: Optional[bigquery.WriteDisposition] =
             bigquery.WriteDisposition.WRITE_TRUNCATE) -> None:
@@ -440,11 +510,16 @@ class Operator:
         self._wait_for_jobs(self._copy_jobs(
             source_table_names, destination_table_names,
             source_dataset_id, write_disposition))
+        if time_to_live is not None:
+            for n in destination_table_names:
+                self.set_time_to_live(n, time_to_live)
 
     def run_query(
             self,
             query: str,
             destination_table_name: str,
+            sample_size: Optional[int] = None,
+            time_to_live: Optional[int] = None,
             write_disposition: Optional[bigquery.WriteDisposition] =
             bigquery.WriteDisposition.WRITE_TRUNCATE) -> dict:
         """Run a query. Return monitoring as a dict in the format
@@ -452,7 +527,8 @@ class Operator:
         seconds and c the execution cost in dollars.
         """
         return self.run_queries(
-            [query], [destination_table_name], write_disposition)
+            [query], [destination_table_name],
+            sample_size, time_to_live, write_disposition)
 
     def extract_table(
             self,
@@ -472,19 +548,21 @@ class Operator:
             self,
             source_uri: str,
             destination_table_name: str,
+            time_to_live: Optional[int] = None,
             schema: Optional[List[bigquery.SchemaField]] = None,
             field_delimiter: Optional[str] = '|',
             write_disposition: Optional[bigquery.WriteDisposition] =
             bigquery.WriteDisposition.WRITE_TRUNCATE) -> None:
         """Load one or more Storage CSV files into one BigQuery table."""
         self.load_tables(
-            [source_uri], [destination_table_name], [schema],
-            field_delimiter, write_disposition)
+            [source_uri], [destination_table_name], time_to_live,
+            [schema], field_delimiter, write_disposition)
 
     def copy_table(
             self,
             source_table_name: str,
             destination_table_name: str,
+            time_to_live: Optional[int] = None,
             source_dataset_id: Optional[str] = None,
             write_disposition: Optional[bigquery.WriteDisposition] =
             bigquery.WriteDisposition.WRITE_TRUNCATE) -> None:
@@ -493,5 +571,5 @@ class Operator:
         self.dataset_id.
         """
         self.copy_tables(
-            [source_table_name], [destination_table_name],
+            [source_table_name], [destination_table_name], time_to_live,
             source_dataset_id, write_disposition)

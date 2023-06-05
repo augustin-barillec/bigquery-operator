@@ -138,10 +138,12 @@ class TableMethodsWithApiCallsTest(ut.base_class.BaseClassTest):
 
     def test_set_time_to_live(self):
         from datetime import datetime, timedelta, timezone
-        now = datetime.now(timezone.utc)
-        approximate_expected = now + timedelta(days=3)
+        expected = (
+                datetime.now(timezone.utc) +
+                timedelta(days=3 + 1)).date()
+        expected = datetime.combine(
+            expected, datetime.min.time(), tzinfo=timezone.utc)
         ut.table.create_empty_table('table_name')
         ut.operators.operator_quick_setup.set_time_to_live('table_name', 3)
         computed = ut.table.get_table('table_name').expires
-        delta = (computed - approximate_expected).total_seconds()
-        self.assertTrue(0 < delta < 1)
+        self.assertEqual(expected, computed)

@@ -31,16 +31,10 @@ class DatasetMethodsWithApiCallsTest(ut.base_class.BaseClassTest):
 
     def tests_create_dataset(self):
         ut.dataset.delete_dataset()
-        ut.operators.operator_quick_setup.create_dataset()
-        self.assertTrue(ut.dataset.dataset_exists())
-
-        ut.dataset.delete_dataset()
-        ut.operators.operator.create_dataset(
-            location='EU', default_time_to_live=11)
+        ut.operators.operator.create_dataset(location='EU')
         self.assertTrue(ut.dataset.dataset_exists())
         dataset = ut.dataset.get_dataset()
         self.assertEqual('EU', dataset.location)
-        self.assertEqual(11*24*3600*1000, dataset.default_table_expiration_ms)
 
     def test_list_tables(self):
         self.assertEqual([], ut.operators.operator.list_tables())

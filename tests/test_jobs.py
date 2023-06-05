@@ -42,9 +42,10 @@ class JobsTest(ut.base_class.BaseClassTest):
         uri_2 = ut.bucket.build_bucket_uri(blob_name_2)
         ut.operators.operator.extract_tables(
             source_table_names=['table_name_1', 'table_name_2'],
-            destination_uris=[uri_1, uri_2])
-        computed_1 = ut.load.bucket_to_dataframe(blob_name_1)
-        computed_2 = ut.load.bucket_to_dataframe(blob_name_2)
+            destination_uris=[uri_1, uri_2],
+            compression=bigquery.Compression.GZIP)
+        computed_1 = ut.load.bucket_to_dataframe(blob_name_1, decompress=True)
+        computed_2 = ut.load.bucket_to_dataframe(blob_name_2, decompress=True)
         self.assert_dataframe_equal(expected_1, computed_1)
         self.assert_dataframe_equal(expected_2, computed_2)
         ut.bucket.delete_bucket()
@@ -119,7 +120,7 @@ class JobsTest(ut.base_class.BaseClassTest):
             source_table_name='table_name',
             destination_uri=uri)
         computed = ut.load.bucket_to_dataframe(
-            'table_name-000000000000.csv.gz')
+            'table_name-000000000000.csv.gz', decompress=False)
         self.assert_dataframe_equal(expected, computed)
         ut.bucket.delete_bucket()
 
