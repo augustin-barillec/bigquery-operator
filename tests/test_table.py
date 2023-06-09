@@ -3,7 +3,7 @@ from google.cloud import bigquery
 from tests import utils as ut
 
 
-class TableMethodsWithoutApiCallsTest(unittest.TestCase):
+class TableWithoutApiCallsTest(unittest.TestCase):
 
     def test_build_table_id(self):
         expected = ut.table.build_table_id('table_name')
@@ -16,7 +16,7 @@ class TableMethodsWithoutApiCallsTest(unittest.TestCase):
         self.assertEqual(expected, computed)
 
 
-class TableMethodsWithApiCallsTest(ut.base_class.BaseClassTest):
+class TableWithApiCallsTest(ut.base_class.BaseClassTest):
 
     def test_get_table(self):
         ut.table.create_empty_table('table_name')
@@ -123,6 +123,10 @@ class TableMethodsWithApiCallsTest(ut.base_class.BaseClassTest):
         self.assertEqual(None, table.require_partition_filter)
         self.assertEqual(None, table.clustering_fields)
 
+        ut.table.create_empty_table('table_name_3')
+        ut.operators.operator_quick_setup.create_empty_table(
+            'table_name_3', pre_delete_if_exists=True, time_to_live=5)
+
     def test_table_is_empty(self):
         ut.table.create_empty_table('table_name')
         self.assertTrue(ut.operators.operator.table_is_empty('table_name'))
@@ -139,6 +143,15 @@ class TableMethodsWithApiCallsTest(ut.base_class.BaseClassTest):
         expected = ['a', 'b']
         ut.load.query_to_dataset('select 3 as a, 1 as b', 'table_name_2')
         computed = ut.operators.operator.get_columns('table_name_2')
+        self.assertEqual(expected, computed)
+
+    def test_get_table_rows(self):
+        expected = [bigquery.Row((3, 'y'), {'a': 0, 'b': 1}), bigquery.Row((4, 'x'), {'a': 0, 'b': 1})]
+        query = """
+        select 3 as a, 'y' as b union all select 4 as a, 'x' as b
+        """
+        ut.load.query_to_dataset(query, 'table_name')
+        computed = ut.operators.operator_quick_setup.get_table_rows('table_name')
         self.assertEqual(expected, computed)
 
     def test_get_format_attributes(self):

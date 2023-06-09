@@ -3,7 +3,7 @@ from google.cloud import bigquery
 from tests import utils as ut
 
 
-class DatasetMethodsWithoutApiCallsTest(unittest.TestCase):
+class DatasetWithoutApiCallsTest(unittest.TestCase):
 
     def test_instantiate_dataset(self):
         computed = ut.operators.operator.instantiate_dataset()
@@ -12,7 +12,7 @@ class DatasetMethodsWithoutApiCallsTest(unittest.TestCase):
         self.assertEqual(ut.constants.dataset_name, computed.dataset_id)
 
 
-class DatasetMethodsWithApiCallsTest(ut.base_class.BaseClassTest):
+class DatasetWithApiCallsTest(ut.base_class.BaseClassTest):
 
     def test_get_dataset(self):
         computed = ut.operators.operator.instantiate_dataset()

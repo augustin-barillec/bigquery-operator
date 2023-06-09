@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import List, Optional
+from typing import Optional, List, Tuple
 from datetime import datetime, timezone, timedelta
 from google.cloud import bigquery, exceptions
 from google.api_core.exceptions import PreconditionFailed
@@ -232,7 +232,11 @@ class Operator:
             res[a] = getattr(self.get_table(table_name), a)
         return res
 
-    def set_time_to_live(self, table_name: str, nb_days: int) -> None:
+    def set_time_to_live(
+            self,
+            table_name: str,
+            nb_days: int,
+            retry_delays: Tuple[int, ...] = (10, 30)) -> None:
         """Set the time to live of a table in days. More precisely the
         expires attribute of the table is set to UTC midnight between
         (today + nb_days) and (today + nb_days + 1), if it has not already
@@ -240,29 +244,31 @@ class Operator:
 
         We have noticed that some
         unexpected google.api_core.exceptions.PreconditionFailed can
-        happen. We catch this exception and try to update the table at most
-        4 times:
-        - first try immediately
-        - second try 10 seconds after the first try
-        - third try 30 seconds after the second try
-        - fourth try 60 seconds after the third try
+        happen. That is why we try to update the table several times. If this
+        exception is raised, we try again after a delay. The retry delays
+        are specified in seconds in the argument retry_delays.
         """
-        expiration_time = (
+        expiration_date = (
                 datetime.now(timezone.utc) +
                 timedelta(days=nb_days + 1)).date()
         expiration_time = datetime.combine(
-            expiration_time, datetime.min.time(), tzinfo=timezone.utc)
-        for duration in [10, 30, 60]:
+            expiration_date, datetime.min.time(), tzinfo=timezone.utc)
+        for duration in retry_delays:
+            table = self.get_table(table_name)
+            if expiration_time == table.expires:
+                return
+            table.expires = expiration_time
             try:
-                table = self.get_table(table_name)
-                if expiration_time == table.expires:
-                    return
-                table.expires = expiration_time
                 self._client.update_table(table, ['expires'])
             except PreconditionFailed as e:
-                logger.warning(e, stack_info=True)
+                logger.warning(e)
                 logger.warning(f'sleeping {duration} seconds before next try')
                 time.sleep(duration)
+        table = self.get_table(table_name)
+        if expiration_time == table.expires:
+            return
+        table.expires = expiration_time
+        self._client.update_table(table, ['expires'])
 
     def create_view(
             self,

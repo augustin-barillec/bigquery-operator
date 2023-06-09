@@ -26,6 +26,12 @@ class JobsTest(ut.base_class.BaseClassTest):
         self.assert_dataframe_equal(expected_1, computed_1)
         self.assert_dataframe_equal(expected_2, computed_2)
 
+        ut.operators.operator.run_queries(
+            queries=[query_1, query_2],
+            destination_table_names=['table_name_1', 'table_name_2'],
+            sample_size=1,
+            time_to_live=5)
+
     def test_extract_tables(self):
         expected_1 = pandas.DataFrame(
             data={'x': [3], 'y': ['a']})
@@ -143,7 +149,8 @@ class JobsTest(ut.base_class.BaseClassTest):
             destination_table_name='table_name_bis',
             schema=[
                 bigquery.SchemaField('x', 'INTEGER'),
-                bigquery.SchemaField('y', 'STRING')])
+                bigquery.SchemaField('y', 'STRING')],
+            time_to_live=2)
         computed = ut.load.dataset_to_dataframe('table_name_bis')
         self.assert_dataframe_equal(expected, computed)
         ut.bucket.delete_bucket()
@@ -169,7 +176,8 @@ class JobsTest(ut.base_class.BaseClassTest):
         ut.operators.operator.copy_table(
             source_table_name='table_name',
             destination_table_name='copy_table_name',
-            source_dataset_id=source_dataset_id)
+            source_dataset_id=source_dataset_id,
+            time_to_live=1)
         computed = ut.load.dataset_to_dataframe('copy_table_name')
         self.assert_dataframe_equal(expected, computed)
         ut.constants.bq_client.delete_dataset(

@@ -1,10 +1,12 @@
 import unittest
 import bigquery_operator
+from unittest import mock
+from copy import deepcopy
+from google.api_core.exceptions import PreconditionFailed
 from tests import utils as ut
 
 
 class ErrorsTest(unittest.TestCase):
-
     def test_raise_error_if_dataset_id_not_contain_exactly_one_dot(self):
         msg = 'dataset_id must contain exactly one dot'
 
@@ -86,3 +88,46 @@ class ErrorsTest(unittest.TestCase):
         msg = ('source_table_names and destination_table_names '
                'must have the same length')
         self.assertEqual(msg, str(cm.exception))
+
+    @mock.patch('tests.utils.operators.operator.get_table')
+    @mock.patch('tests.utils.operators.operator._client.update_table')
+    def test_set_time_to_live_raises_exception_after_max_retries(
+            self, mock_update_table, mock_get_table):
+        from google.api_core.exceptions import PreconditionFailed
+        from copy import deepcopy
+
+        mock_table = mock.MagicMock()
+        mock_table.expires = None
+        mock_table_1 = deepcopy(mock_table)
+        mock_table_2 = deepcopy(mock_table)
+        mock_table_3 = deepcopy(mock_table)
+        mock_get_table.side_effect = [mock_table_1, mock_table_2, mock_table_3]
+        mock_update_table.side_effect = PreconditionFailed(
+            "PreconditionFailed")
+        with self.assertRaises(PreconditionFailed):
+            ut.operators.operator.set_time_to_live("table_name", 7, [1, 1])
+
+        self.assertEqual(mock_update_table.call_count, 3)
+
+    @mock.patch('tests.utils.operators.operator.get_table')
+    @mock.patch('tests.utils.operators.operator._client.update_table')
+    def test_set_time_to_live_catches_2_exceptions(
+            self, mock_update_table, mock_get_table):
+        from datetime import datetime, timedelta, timezone
+        expected = (
+                datetime.now(timezone.utc) +
+                timedelta(days=7 + 1)).date()
+        expected = datetime.combine(
+            expected, datetime.min.time(), tzinfo=timezone.utc)
+
+        mock_table = mock.MagicMock()
+        mock_table.expires = None
+        mock_table_1 = deepcopy(mock_table)
+        mock_table_2 = deepcopy(mock_table)
+        mock_table_3 = deepcopy(mock_table)
+        mock_table_3.expires = expected
+        mock_get_table.side_effect = [mock_table_1, mock_table_2, mock_table_3]
+        mock_update_table.side_effect = PreconditionFailed(
+            "PreconditionFailed")
+        ut.operators.operator.set_time_to_live("table_name", 7, [1, 1])
+        self.assertEqual(mock_update_table.call_count, 2)
