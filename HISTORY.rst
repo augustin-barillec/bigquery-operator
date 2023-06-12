@@ -21,7 +21,7 @@ Improvement
 * The methods create_empty_table, create_view, run_queries, load_tables,
   copy_tables, run_query, load_table and copy_table have now a time_to_live
   argument, which is applied to the created tables.
-* The method set_time_to_live has now some retries making it more robust
+* The method set_time_to_live can now do retries making it more robust
   to google.api_core.exceptions.PreconditionFailed exceptions.
 
 1.0 (2022-09-15)
