@@ -67,8 +67,9 @@ class Operator:
         """Sample randomly a query.
 
         The output query gives a subset of the lines given by the input query.
-        This subset has approximately ``size`` lines. Nonetheless, the cost of
-        the output query is the same as the cost of the input query.
+        This subset has approximately ``size`` lines. Nonetheless, the number
+        of gigabytes processed is the same for the output query and the
+        input query.
         """
         return (f'select * from ({query}) '
                 f'where rand() < {size}/(select count(*) from ({query}))')
@@ -186,8 +187,8 @@ class Operator:
             range_partitioning: Optional[bigquery.RangePartitioning] = None,
             require_partition_filter: Optional[bool] = None,
             clustering_fields: Optional[List[str]] = None) -> None:
-        """Create a empty table. Only specify at
-        most one of time_partitioning or range_partitioning.
+        """Create a empty table. Only specify at most one of
+        time_partitioning or range_partitioning.
         """
         if pre_delete_if_exists:
             self.delete_table_if_exists(table_name)
@@ -442,8 +443,8 @@ class Operator:
             write_disposition: Optional[bigquery.WriteDisposition] =
             bigquery.WriteDisposition.WRITE_TRUNCATE) -> dict:
         """Run queries. Return monitoring as a dict in the format
-        {'duration': d, 'cost': c} where d is the execution duration in
-        seconds and c the execution cost in dollars.
+        {'duration': d, 'GB': gb} where d is the execution duration in
+        seconds and gb the number of gigabytes processed by the queries.
         """
         if sample_size is not None:
             queries = [self.sample_query(q, sample_size) for q in queries]
@@ -453,11 +454,12 @@ class Operator:
         self._wait_for_jobs(jobs)
         end_timestamp = datetime.now(timezone.utc)
         duration = round((end_timestamp - start_timestamp).total_seconds())
-        total_bytes_billed_list = [j.total_bytes_billed for j in jobs]
-        costs = [round(tbb / 10 ** 12 * 6, 5)
-                 for tbb in total_bytes_billed_list]
-        cost = sum(costs)
-        monitoring = {'duration': duration, 'cost': cost}
+        total_bytes_processed_list = [
+                j.total_bytes_processed for j in jobs]
+        gb_processed_list = [
+            round(tbb / 10 ** 9, 2) for tbb in total_bytes_processed_list]
+        gb_processed = sum(gb_processed_list)
+        monitoring = {'duration': duration, 'GB': gb_processed}
         if time_to_live is not None:
             for n in destination_table_names:
                 self.set_time_to_live(n, time_to_live)
@@ -471,7 +473,7 @@ class Operator:
             field_delimiter: Optional[str] = '|',
             print_header: Optional[bool] = True) -> None:
         """Extract tables from BigQuery to Storage. Each source table is
-        extracted as one or more compressed gzip csv files.
+        extracted as one or more CSV files.
         """
         self._wait_for_jobs(self._extract_jobs(
             source_table_names,
@@ -529,8 +531,8 @@ class Operator:
             write_disposition: Optional[bigquery.WriteDisposition] =
             bigquery.WriteDisposition.WRITE_TRUNCATE) -> dict:
         """Run a query. Return monitoring as a dict in the format
-        {'duration': d, 'cost': c} where d is the execution duration in
-        seconds and c the execution cost in dollars.
+        {'duration': d, 'GB': gb} where d is the execution duration in
+        seconds and gb the number of gigabytes processed by the query.
         """
         return self.run_queries(
             [query], [destination_table_name],
@@ -543,9 +545,7 @@ class Operator:
             compression: Optional[str] = None,
             field_delimiter: Optional[str] = '|',
             print_header: Optional[bool] = True) -> None:
-        """Extract a table. Data is extracted as a gzip compressed csv.
-        ``destination_uri`` must end with '.csv.gz'
-        """
+        """Extract a table."""
         self.extract_tables(
             [source_table_name], [destination_uri],
             compression, field_delimiter, print_header)

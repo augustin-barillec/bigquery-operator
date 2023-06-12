@@ -4,7 +4,6 @@ from tests import utils as ut
 
 
 class DatasetWithoutApiCallsTest(unittest.TestCase):
-
     def test_instantiate_dataset(self):
         computed = ut.operators.operator.instantiate_dataset()
         self.assertTrue(isinstance(computed, bigquery.Dataset))
@@ -13,7 +12,6 @@ class DatasetWithoutApiCallsTest(unittest.TestCase):
 
 
 class DatasetWithApiCallsTest(ut.base_class.BaseClassTest):
-
     def test_get_dataset(self):
         computed = ut.operators.operator.instantiate_dataset()
         self.assertTrue(isinstance(computed, bigquery.Dataset))

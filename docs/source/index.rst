@@ -57,9 +57,7 @@ Execute various operations on the dataset tmp_dataset.
 
     >>> o.dataset_exists()
     False
-    >>> o.create_dataset(
-    >>>     location='EU',
-    >>>     default_time_to_live=10)
+    >>> o.create_dataset(location='EU')
     >>> o.dataset_exists()
     True
     >>> o.list_tables()
@@ -67,13 +65,13 @@ Execute various operations on the dataset tmp_dataset.
     >>> o.table_exists('table_1')
     False
     >>> o.run_query('select 3.14 as x', 'table_1')
-    {'duration': 3, 'cost': 0.0}
+    {'duration': 3, 'GB': 0.0}
     >>> o.table_exists('table_1')
     True
-    >>> o.run_query('select 3.14 as x', 'table_1')
-    {'duration': 2, 'cost': 0.0}
-    >>> o.table_exists('table_1')
-    True
+    >>> o.get_table_rows('table_1')
+    [Row((3.14,), {'x': 0})]
+    >>> o.get_query_rows('select 3.14 as x')
+    [Row((3.14,), {'x': 0})]
     >>> o.create_view('select 2.718 as x', 'table_2')
     >>> o.copy_table('table_1', 'copy_table_1')
     # Let suppose the table tmp1_project.tmp1_dataset.table_3 exists.
@@ -85,9 +83,9 @@ Execute various operations on the dataset tmp_dataset.
     # Let suppose the bucket tmp_bucket exists.
     # Then one can extract a table from tmp_dataset into tmp_bucket.
     >>> bucket_name = 'tmp_bucket'
-    >>> blob_name = 'table_1-*.csv.gz'
+    >>> blob_name = 'table_1-*.csv'
     >>> uri = f'gs://{bucket_name}/{blob_name}'
-    >>> o.extract_table('table_1', uri, print_header=True)
+    >>> o.extract_table('table_1', uri)
     # Conversely, one can load data from tmp_bucket into tmp_dataset.
     >>> o.load_table(uri, 'table_10')
     # The methods run_queries, copy_tables, extract_tables and
@@ -95,7 +93,7 @@ Execute various operations on the dataset tmp_dataset.
     >>> queries = [f'select {i}' for i in range(4)]
     >>> destination_table_names = [f'table_4{i}' for i in range(4)]
     >>> o.run_queries(queries, destination_table_names)
-    {'duration': 4, 'cost': 0.0}
+    {'duration': 4, 'GB': 0.0}
     >>> o.list_tables()
     ['copy_table_1', 'copy_table_3', 'table_1',
      'table_10', 'table_2', 'table_40', 'table_41',
@@ -122,7 +120,7 @@ Execute various operations on the dataset tmp_dataset.
     >>> cast('2012-11-14 14:32:30' as TIMESTAMP) as z
     >>> """
     >>> o.run_query(query, 'table_5')
-    {'duration': 3, 'cost': 0.0}
+    {'duration': 3, 'GB': 0.0}
     >>> o.table_is_empty('table_5')
     False
     >>> o.get_table('table_5').num_rows
@@ -157,7 +155,8 @@ Execute various operations on the dataset tmp_dataset.
     >>> for n in o.list_tables():
     >>>     o.set_time_to_live(table_name=n, nb_days=5)
     >>> o.get_table('table_1').expires
-    datetime.datetime(2022, 9, 19, 13, 58, 3, 727000,
+    datetime.datetime(
+        2023, 6, 18, 0, 0,
         tzinfo=datetime.timezone.utc)
     >>> o.clean_dataset()
     >>> o.list_tables()

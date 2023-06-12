@@ -4,7 +4,6 @@ from tests import utils as ut
 
 
 class TableWithoutApiCallsTest(unittest.TestCase):
-
     def test_build_table_id(self):
         expected = ut.table.build_table_id('table_name')
         computed = ut.operators.operator.build_table_id('table_name')
@@ -17,7 +16,6 @@ class TableWithoutApiCallsTest(unittest.TestCase):
 
 
 class TableWithApiCallsTest(ut.base_class.BaseClassTest):
-
     def test_get_table(self):
         ut.table.create_empty_table('table_name')
         expected = ut.table.get_table('table_name')
@@ -146,12 +144,15 @@ class TableWithApiCallsTest(ut.base_class.BaseClassTest):
         self.assertEqual(expected, computed)
 
     def test_get_table_rows(self):
-        expected = [bigquery.Row((3, 'y'), {'a': 0, 'b': 1}), bigquery.Row((4, 'x'), {'a': 0, 'b': 1})]
+        expected = [
+            bigquery.Row((3, 'y'), {'a': 0, 'b': 1}),
+            bigquery.Row((4, 'x'), {'a': 0, 'b': 1})]
         query = """
         select 3 as a, 'y' as b union all select 4 as a, 'x' as b
         """
         ut.load.query_to_dataset(query, 'table_name')
-        computed = ut.operators.operator_quick_setup.get_table_rows('table_name')
+        computed = ut.operators.operator_quick_setup.get_table_rows(
+            'table_name')
         self.assertEqual(expected, computed)
 
     def test_get_format_attributes(self):

@@ -4,7 +4,6 @@ from tests import utils as ut
 
 
 class JobsTest(ut.base_class.BaseClassTest):
-
     def test_run_queries(self):
         expected_1 = pandas.DataFrame(
             data={'x': [3], 'y': ['a']})
@@ -14,9 +13,9 @@ class JobsTest(ut.base_class.BaseClassTest):
         monitoring = ut.operators.operator.run_queries(
             queries=[query_1, query_2],
             destination_table_names=['table_name_1', 'table_name_2'])
-        self.assertEqual(['cost', 'duration'], sorted(monitoring.keys()))
-        self.assertTrue(isinstance(monitoring['cost'], float))
-        self.assertEqual(0.0, monitoring['cost'])
+        self.assertEqual(['GB', 'duration'], sorted(monitoring.keys()))
+        self.assertTrue(isinstance(monitoring['GB'], float))
+        self.assertEqual(0.0, monitoring['GB'])
         self.assertTrue(isinstance(monitoring['duration'], int))
         self.assertTrue(monitoring['duration'] > 0)
         self.assertEqual(
@@ -102,9 +101,9 @@ class JobsTest(ut.base_class.BaseClassTest):
         monitoring = ut.operators.operator.run_query(
             query=query,
             destination_table_name='table_name')
-        self.assertEqual(['cost', 'duration'], sorted(monitoring.keys()))
-        self.assertTrue(isinstance(monitoring['cost'], float))
-        self.assertEqual(0.0, monitoring['cost'])
+        self.assertEqual(['GB', 'duration'], sorted(monitoring.keys()))
+        self.assertTrue(isinstance(monitoring['GB'], float))
+        self.assertEqual(0.0, monitoring['GB'])
         self.assertTrue(isinstance(monitoring['duration'], int))
         self.assertTrue(monitoring['duration'] > 0)
         self.assertEqual(['table_name'], ut.dataset.list_tables())

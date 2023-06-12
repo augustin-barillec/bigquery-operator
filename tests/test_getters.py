@@ -4,7 +4,6 @@ from tests import utils as ut
 
 
 class GettersTest(unittest.TestCase):
-
     def test_call_operator_getters(self):
         o = bigquery_operator.Operator(
             ut.constants.bq_client,

@@ -111,7 +111,7 @@ class ErrorsTest(unittest.TestCase):
 
     @mock.patch('tests.utils.operators.operator.get_table')
     @mock.patch('tests.utils.operators.operator._client.update_table')
-    def test_set_time_to_live_catches_2_exceptions(
+    def test_set_time_to_live_catches_2_exceptions_and_succeeds(
             self, mock_update_table, mock_get_table):
         from datetime import datetime, timedelta, timezone
         expected = (
