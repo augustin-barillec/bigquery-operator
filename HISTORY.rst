@@ -6,7 +6,6 @@ History
 ------------------
 API Changes
 ^^^^^^^^^^^
-* pandas==2.* is now required.
 * When a table is extracted from BigQuery to Storage, it is not compressed
   anymore by default.
 
